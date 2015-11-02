@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>PHP File Multiupload</title>
+  </head>
+  <body>
+    <form action="test.php" method="post" enctype="multipart/form-data">
+      <fieldset>
+        <legend>PHP File Multiupload</legend>
+        <input type="file" name="files[]" multiple>
+        <input type="submit" name="uploadFiles" value="Upload files">
+      </fieldset>
+    </form>
+  </body>
+</html>
