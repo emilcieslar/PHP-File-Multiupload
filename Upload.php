@@ -3,6 +3,7 @@
 /**
  * Upload class
  *
+ * @author Emil Cieslar
  */
 class Upload
 {
