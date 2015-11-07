@@ -32,18 +32,17 @@ class Upload
   // The whole path that file should be uploaded
   private $path;
 
-  // Holds the singleton instance
-  private static $instance = null;
-
 
   // Constant for MegaBytes to Bytes conversion
-  const MEGA = 1024*1024;
+  const KILO = 1024;
 
 
   /**
-   * Private constructor that creates the instance only once during the execution
+   * Private constructor that creates the upload instance
+   *
+   * @param Array $files the $_FILES['filesname'] array
    */
-  private function __construct($files)
+  public function __construct($files)
   {
     // Set array of files that will be uploaded
     $this->files = $files;
@@ -53,7 +52,7 @@ class Upload
     $this->filesSuccess = [];
     $this->errors = [];
     // Default max file size 2 MBs
-    $this->maxFileSize = 2*Upload::MEGA;
+    $this->maxFileSize = $this->convertFromMB(2);
     // Default formats are images
     $this->allowedFormats = array("jpg", "png", "gif", "bmp");
     // Default final directory is 'upload'
@@ -61,32 +60,7 @@ class Upload
     // Default root directory is DOCUMENT_ROOT
     $this->root = $_SERVER['DOCUMENT_ROOT'];
     // Set the whole path for the upload directory
-    $this->path = $this->root . '/' . $this->dir . '/';
-  }
-
-  /**
-   * Function init
-   *
-   * Initializes the singleton instance
-   *
-   * @param Array $files the $_FILES['filesname'] array
-   * @return the singleton instance of Upload class
-   */
-  public static function init($files = null)
-  {
-    // If user did not specified files, exit
-    if(!isset($files))
-      return;
-
-    // If the Upload instance doesn't exist yet, created it
-    if(!isset(static::$instance))
-        static::$instance = new Upload($files);
-
-    // Return the instance in order for user to work with it, for example:
-    // - upload files
-    // - retrieve uploaded files or error messages
-    // - change root or upload directory, etc.
-    return static::$instance;
+    $this->path = $this->setPath();
   }
 
 
@@ -98,40 +72,40 @@ class Upload
   public static function upload($files = null)
   {
     // Loop $_FILES to go over all files
-    foreach (static::$instance->files['name'] as $f => $name)
+    foreach ($this->files['name'] as $f => $name)
     {
       // Check for any errors during the upload
-      if (static::$instance->files['error'][$f] != 0)
+      if ($this->files['error'][$f] != 0)
       {
-        static::$instance->errors[] = static::getErrorString(static::$instance->files['error'][$f]);
+        $this->errors[] = $this->getErrorString($this->files['error'][$f]);
         continue; // Skip file if any error found
       }
 
       // If no errors are found during the upload, continue
-      if (static::$instance->files['error'][$f] == 0)
+      if ($this->files['error'][$f] == 0)
       {
         // Check if file is not too large
-        if (static::$instance->files['size'][$f] > $maxFileSize)
+        if ($this->files['size'][$f] > $maxFileSize)
         {
-          static::$instance->errors[] = "$name is too large";
+          $this->errors[] = "$name is too large";
           continue; // Skip large files
         }
         // Check if it's allowed file format
-        elseif( ! in_array(pathinfo($name, PATHINFO_EXTENSION), static::$instance->allowedFormats) )
+        elseif( ! in_array(pathinfo($name, PATHINFO_EXTENSION), $this->allowedFormats) )
         {
-          static::$instance->errors[] = "$name is not a valid format";
+          $this->errors[] = "$name is not a valid format";
           continue; // Skip invalid file formats
         }
         // No error found! Move uploaded files
         else
         {
           // Create unique name
-          $uniqueName = static::generateUniqueName($name);
+          $uniqueName = $this->generateUniqueName($name);
 
           // Move the uploaded file to its final destination
-          if(move_uploaded_file(static::$instance->files["tmp_name"][$f], $path.$uniqueName))
+          if(move_uploaded_file($this->files["tmp_name"][$f], $path.$uniqueName))
             // Add the file to the array of successfully uploaded files
-            static::$instance->filesSuccess[] = $uniqueName;
+            $this->filesSuccess[] = $uniqueName;
         }
 
       } // No errors during upload
@@ -142,20 +116,20 @@ class Upload
   /**
    * Set the root directory
    */
-  public static function setRoot($root)
+  public function setRoot($root)
   {
-    static::$instance->root = $root;
-    static::$instance->setPath();
+    $this->root = $root;
+    $this->setPath();
   }
 
 
   /**
    * Set the upload directory
    */
-  public static function setDir($dir)
+  public function setDir($dir)
   {
-    static::$instance->dir = $dir;
-    static::$instance->setPath();
+    $this->dir = $dir;
+    $this->setPath();
   }
 
 
@@ -164,11 +138,16 @@ class Upload
    */
   private function setPath()
   {
-    $this->path = $this->root . '/' . $this->dir . '/';
+    $this->path = $this->root . $this->dir . '/';
+  }
+
+  public function getPath()
+  {
+    return $this->path;
   }
 
 
-  private static function getErrorString($error)
+  private function getErrorString($error)
   {
     $phpFileUploadErrors = array(
         0 => 'There is no error, the file uploaded with success',
@@ -184,12 +163,21 @@ class Upload
     return $phpFileUploadErrors[$error];
   }
 
-  private static function generateUniqueName($name)
+  private function generateUniqueName($name)
   {
     $uniqueName = md5(uniqid(rand(), true));
     // Add file extension to the name
     $uniqueName .= "." . pathinfo($name, PATHINFO_EXTENSION);
     return $uniqueName;
+  }
+
+
+  /**
+   * A method to convert MBs to Bytes
+   */
+  private function convertFromMB($MBs)
+  {
+    return $MBs*Upload::KILO*Upload::KILO;
   }
 
 }
