@@ -69,7 +69,7 @@ class Upload
    *
    * Uploads all files from $files array
    */
-  public static function upload($files = null)
+  public function upload($files = null)
   {
     // Loop $_FILES to go over all files
     foreach ($this->files['name'] as $f => $name)
